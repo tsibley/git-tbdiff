@@ -27,14 +27,14 @@ import optparse
 from collections import defaultdict
 
 parser = optparse.OptionParser()
-parser.add_option('--color', default=True, action='store_true', dest='color')
+parser.add_option('--color', action='store_true', dest='color')
 parser.add_option('--no-color', action='store_false', dest='color')
 parser.add_option('--dual-color', action='store_const', dest='color', const=2,
                   help='color both diff and diff-between-diffs')
-parser.add_option('--no-patches', action='store_false', dest='patches', default=True,
+parser.add_option('--no-patches', action='store_false', dest='patches',
                   help='short format (no diffs)')
 parser.add_option('--creation-weight', action='store',
-                  dest='creation_fudge', type=float, default=0.6,
+                  dest='creation_fudge', type=float,
                   help='Fudge factor by which creation is weighted [%default]')
 
 def die(msg):
@@ -378,6 +378,10 @@ def prettyprint_assignment(sA, dA, sB, dB):
 
 
 if __name__ == '__main__':
+    parser.set_defaults(
+        color          = True,
+        patches        = True,
+        creation_fudge = 0.6)
     options, args = parser.parse_args()
     if options.color:
         load_colors()
