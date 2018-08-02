@@ -24,17 +24,18 @@ import subprocess
 import difflib
 import numpy as np
 import optparse
+import re
 from collections import defaultdict
 
 parser = optparse.OptionParser()
-parser.add_option('--color', default=True, action='store_true', dest='color')
+parser.add_option('--color', action='store_true', dest='color')
 parser.add_option('--no-color', action='store_false', dest='color')
 parser.add_option('--dual-color', action='store_const', dest='color', const=2,
                   help='color both diff and diff-between-diffs')
-parser.add_option('--no-patches', action='store_false', dest='patches', default=True,
+parser.add_option('--no-patches', action='store_false', dest='patches',
                   help='short format (no diffs)')
 parser.add_option('--creation-weight', action='store',
-                  dest='creation_fudge', type=float, default=0.6,
+                  dest='creation_fudge', type=float,
                   help='Fudge factor by which creation is weighted [%default]')
 
 def die(msg):
@@ -134,8 +135,29 @@ c_new = ''
 c_inv_old = ''
 c_inv_new = ''
 
+def get_config(args):
+    return subprocess.check_output(['git', 'config'] + args).strip()
+
+def get_config_bool(args):
+    value = get_config(['--bool'] + args)
+    return True if value == 'true' else False
+
+def get_color_config(default):
+    try:
+        color = get_config(["color.tbdiff"])
+        if re.match('\d', color):
+            return int(color)
+        else:
+            return get_config_bool(["color.tbdiff"])
+    except subprocess.CalledProcessError as e:
+        # git config exits 1 when "the section or key is invalid", such as
+        # color.tbdiff not existing.
+        if e.returncode == 1:
+            return default
+        raise
+
 def get_color(varname, default):
-    return subprocess.check_output(['git', 'config', '--get-color', varname, default])
+    return get_config(['--get-color', varname, default])
 
 def invert_ansi_color(color):
     # \e[7;...m chooses the inverse of \e[...m
@@ -378,6 +400,10 @@ def prettyprint_assignment(sA, dA, sB, dB):
 
 
 if __name__ == '__main__':
+    parser.set_defaults(
+        color          = get_color_config(default = True),
+        patches        = True,
+        creation_fudge = 0.6)
     options, args = parser.parse_args()
     if options.color:
         load_colors()
